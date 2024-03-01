@@ -56,4 +56,5 @@ return [
     'users' => 'Felhasználók',
     'validation_errors' => 'Helytelen adatok',
     'view_issue' => 'Itt nézheted meg és követheted nyomon a bejelentett hibád állapotát.',
+    'washing_reservations' => 'Mosófüzet',
 ];
