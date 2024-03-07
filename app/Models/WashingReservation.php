@@ -24,5 +24,8 @@ class WashingReservation extends Model
         'user_id', 'cluster_id', 'starts_on', 'ends_on'
     ];
 
-
+    public function user()
+    {
+        return $this->belongsTo('App\Models\User');
+    }
 }

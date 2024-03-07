@@ -183,7 +183,7 @@
                 @endcan
                 <!--@can('registration.handle')-->
                     <li>
-                        <a class="waves-effect" href="{{ route('washing') }}">
+                        <a class="waves-effect" href="{{ route('wash.index') }}">
                             <i class="material-icons left">local_laundry_service</i> @lang('general.washing_reservations')
                         </a>
                     </li>

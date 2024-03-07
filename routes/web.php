@@ -16,7 +16,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Dormitory\FaultController;
 use App\Http\Controllers\Dormitory\PrintController;
 use App\Http\Controllers\Dormitory\RoomController;
-use App\Http\Controllers\Dormitory\WashingController;
+use App\Http\Controllers\Dormitory\WashingClusterController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Network\AdminCheckoutController;
@@ -81,7 +81,6 @@ Route::middleware(['auth', 'log'])->group(function () {
     Route::post('/application/finalize', [ApplicationController::class, 'finalizeApplicationProcess'])->name('application.finalize');
 });
 
-Route::get('/wash', [WashingController::class, 'index'])->name('washing');
 
 Route::middleware(['auth', 'log', 'verified'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
@@ -112,6 +111,9 @@ Route::middleware(['auth', 'log', 'verified'])->group(function () {
         Route::post('/localizations/admin/approve_all', [LocaleController::class, 'approveAll'])->name('localizations.approve_all');
         Route::post('/localizations/admin/delete', [LocaleController::class, 'delete'])->name('localizations.delete');
     });
+
+    /** Washing */
+    Route::resource('wash', WashingClusterController::class);
 
     /** Printing */
     Route::get('/print', [PrintController::class, 'index'])->name('print');
