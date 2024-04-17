@@ -305,6 +305,13 @@ class UserController extends Controller
         return Excel::download(new UsersExport(), 'uran_export.xlsx');
     }
 
+    /**
+     * Adds a role to the user.
+     * @param Request $request
+     * @param User $user
+     * @param Role $role
+     * @return RedirectResponse
+     */
     public function addRole(Request $request, User $user, Role $role)
     {
         session()->put('section', 'roles');

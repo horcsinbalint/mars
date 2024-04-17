@@ -2,10 +2,13 @@
 
 namespace App\Http\Livewire;
 
-use App\Models\Semester;
+use App\Exports\UsersExport;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Livewire\Component;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ListUsers extends Component
 {
@@ -16,45 +19,32 @@ class ListUsers extends Component
     public $year_of_acceptance = null;
     public $filter_name = '';
 
-    public function getUsersProperty()
+    /**
+     * @return User|Builder the query with all filters (the properties of this class) applied
+     */
+    private function createFilteredQuery(): User|Builder
     {
-        $query = User::canView();
+        $query = User::canView()
+            ->withAllRoles($this->roles)
+            ->inAllWorkshopIds($this->workshops)
+            ->hasStatusAnyOf($this->statuses);
+        if (isset($this->year_of_acceptance) && $this->year_of_acceptance !== '') {
+            $query->yearOfAcceptance($this->year_of_acceptance);
+        }
+        if (isset($this->filter_name)) {
+            $query->nameLike($this->filter_name);
+        }
+        return $query;
+    }
 
-        $query->where(function (Builder $query) {
-            foreach ($this->roles as $role) {
-                $query->whereHas('roles', function (Builder $query) use ($role) {
-                    $query->where('id', $role);
-                });
-            }
-
-            foreach ($this->workshops as $workshop) {
-                $query->whereHas('workshops', function (Builder $query) use ($workshop) {
-                    $query->where('id', $workshop);
-                });
-            }
-
-            if (isset($this->year_of_acceptance)) {
-                $query->whereHas('educationalInformation', function (Builder $query) {
-                    $query->where('year_of_acceptance', $this->year_of_acceptance);
-                });
-            }
-
-            if (isset($this->filter_name)) {
-                $query->where('name', 'like', '%'.$this->filter_name.'%');
-            }
-        });
-
-        //'or' between statuses
-        $query->where(function ($query) {
-            foreach ($this->statuses as $status) {
-                $query->orWhereHas('semesterStatuses', function (Builder $query) use ($status) {
-                    $query->where('status', $status);
-                    $query->where('id', Semester::current()->id);
-                });
-            }
-        });
-
-        return $query
+    /**
+     * Return the `users` property.
+     *
+     * @return array|User[]|Collection the users that match the specified filters, so the users that should be listed
+     */
+    public function getUsersProperty(): array|Collection
+    {
+        return $this->createFilteredQuery()
             ->with(['roles', 'workshops', 'educationalInformation', 'semesterStatuses'])
             ->orderBy('name')->get();
     }
@@ -69,14 +59,24 @@ class ListUsers extends Component
         $this->roles = \array_diff($this->roles, [$role_id]);
     }
 
-    public function addStatus($status_id)
+    /**
+     * Add a status to filter on.
+     *
+     * @param string $status
+     */
+    public function addStatus($status)
     {
-        $this->statuses[] = $status_id;
+        $this->statuses[] = $status;
     }
 
-    public function deleteStatus($status_id)
+    /**
+     * Delete a status from the list of statuses to filter on.
+     *
+     * @param string $status
+     */
+    public function deleteStatus($status)
     {
-        $this->statuses = \array_diff($this->statuses, [$status_id]);
+        $this->statuses = \array_diff($this->statuses, [$status]);
     }
 
     public function addWorkshop($workshop_id)
@@ -87,6 +87,14 @@ class ListUsers extends Component
     public function deleteWorkshop($workshop_id)
     {
         $this->workshops = \array_diff($this->workshops, [$workshop_id]);
+    }
+
+    /**
+     * Export listed users to excel
+     */
+    public function export()
+    {
+        return Excel::download(new UsersExport($this->createFilteredQuery()->get()), 'uran_export.xlsx');
     }
 
     public function render()
