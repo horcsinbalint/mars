@@ -8,8 +8,7 @@
             'class' => "filled-in checkbox-color",
             'name' => $id
         ])}}
-        @checked(in_array($attributes['value'], (old($id)['option'] ?? []))
-                 || $checked)
+        @checked(isset($checked) ? $checked : old($id) || in_array($attributes['value'], (old($id)['option'] ?? []) ))
     >
     <span>{{$label}}</span>
 </label>
