@@ -153,7 +153,7 @@ class PrintJobController extends Controller
                 if ($job->state === PrintJobStatus::QUEUED) {
                     /** @var PrinterCancelResult */
                     $result = $job->cancel();
-        
+
                     if ($result === PrinterCancelResult::Success) {
                         return back()->with('message', __('general.successful_modification'));
                     }

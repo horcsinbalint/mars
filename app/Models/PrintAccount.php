@@ -116,7 +116,8 @@ class PrintAccount extends Model
         return $useFreePages ? $this->hasEnoughFreePages($pages, $copies, $twoSided) : $this->hasEnoughBalance($pages, $copies, $twoSided);
     }
 
-    public function updateHistory(bool $useFreePages, int $cost) {
+    public function updateHistory(bool $useFreePages, int $cost)
+    {
         // Update the print account history
         $this->last_modified_by = user()->id;
 
