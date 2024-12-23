@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -11,9 +12,9 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * App\Models\Transaction
  *
  * @property PaymentType $type
- * @property User $receiver
+ * @property null|User $receiver
  * @property Checkout $checkout
- * @property User $payer
+ * @property null|User $payer
  * @property File|null $receipt
  * @property int $id
  * @property int $checkout_id
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $amount
  * @property int $payment_type_id
  * @property string $comment
+ * @property int|null $receipt_id
  * @property \Illuminate\Support\Carbon|null $moved_to_checkout
  * @property \Illuminate\Support\Carbon|null $paid_at
  * @property \Illuminate\Support\Carbon|null $created_at
@@ -49,6 +51,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @method static \Illuminate\Database\Eloquent\Builder|Transaction whereUpdatedAt($value)
  * @method static \Illuminate\Database\Query\Builder|Transaction withTrashed()
  * @method static \Illuminate\Database\Query\Builder|Transaction withoutTrashed()
+ * @method static \Illuminate\Database\Eloquent\Builder|Transaction whereReceiptId($value)
  * @mixin \Eloquent
  */
 class Transaction extends Model
@@ -68,31 +71,34 @@ class Transaction extends Model
         'paid_at',
     ];
 
-    protected $dates = ['moved_to_checkout', 'paid_at'];
+    protected $casts = [
+        'moved_to_checkout' => 'datetime',
+        'paid_at' => 'datetime',
+    ];
 
-    public function receiver()
+    public function receiver(): BelongsTo
     {
-        return $this->belongsTo('App\Models\User');
+        return $this->belongsTo(User::class);
     }
 
-    public function payer()
+    public function payer(): BelongsTo
     {
-        return $this->belongsTo('App\Models\User');
+        return $this->belongsTo(User::class);
     }
 
-    public function checkout()
+    public function checkout(): BelongsTo
     {
-        return $this->belongsTo('App\Models\Checkout');
+        return $this->belongsTo(Checkout::class);
     }
 
-    public function semester()
+    public function semester(): BelongsTo
     {
-        return $this->belongsTo('App\Models\Semester');
+        return $this->belongsTo(Semester::class);
     }
 
-    public function type()
+    public function type(): BelongsTo
     {
-        return $this->belongsTo('App\Models\PaymentType', 'payment_type_id');
+        return $this->belongsTo(PaymentType::class, 'payment_type_id');
     }
 
     /**
@@ -103,7 +109,7 @@ class Transaction extends Model
         if (in_array($this->type->name, [PaymentType::INCOME, PaymentType::EXPENSE])) {
             return $value;
         }
-        return __('checkout.'.$this->type->name);
+        return __('checkout.' . $this->type->name);
     }
 
     /**

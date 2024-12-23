@@ -14,6 +14,7 @@ use InvalidArgumentException;
  * App\Models\Role
  *
  * @property string $name
+ * @property string $translatedName
  * @property boolean $has_objects
  * @property boolean $has_workshops
  * @property integer $id
@@ -49,6 +50,7 @@ class Role extends Model
     public const BOARD_OF_TRUSTEES_MEMBER = 'board-of-trustees-member';
     public const ETHICS_COMMISSIONER = 'ethics-commissioner';
     public const ALUMNI = 'alumni';
+    public const RECEPTIONIST = 'receptionist';
 
     //Students' Committe role's objects
     public const PRESIDENT = 'president';
@@ -57,6 +59,7 @@ class Role extends Model
     public const CULTURAL_LEADER = 'cultural-leader';
     public const CULTURAL_REFERENT = 'cultural-referent';
     public const CULTURAL_MEMBER = 'cultural-member';
+    public const KKT_HANDLER = 'kkt-handler';
     public const COMMUNITY_LEADER = 'community-leader';
     public const COMMUNITY_REFERENT = 'community-referent';
     public const COMMUNITY_MEMBER = 'community-member';
@@ -88,6 +91,7 @@ class Role extends Model
         self::COMMUNITY_MEMBER,
         self::COMMUNICATION_MEMBER,
         self::SPORT_MEMBER,
+        self::KKT_HANDLER,
     ];
 
     public const STUDENT_POSTION_ROLES = [
@@ -96,7 +100,7 @@ class Role extends Model
         self::STUDENT_COUNCIL_SECRETARY,
         self::STUDENT_COUNCIL,
         self::BOARD_OF_TRUSTEES_MEMBER,
-        self::ETHICS_COMMISSIONER
+        self::ETHICS_COMMISSIONER,
     ];
 
     //collegist related roles
@@ -120,7 +124,8 @@ class Role extends Model
         self::STUDENT_COUNCIL_SECRETARY,
         self::BOARD_OF_TRUSTEES_MEMBER,
         self::ETHICS_COMMISSIONER,
-        self::ALUMNI
+        self::ALUMNI,
+        self::RECEPTIONIST
     ];
 
     protected $fillable = [
@@ -305,6 +310,7 @@ class Role extends Model
             self::BOARD_OF_TRUSTEES_MEMBER => 'deep-orange darken-1',
             self::ETHICS_COMMISSIONER => 'green lighten-2',
             self::ALUMNI => 'grey darken-1',
+            self::RECEPTIONIST => 'brown',
             default => 'grey',
         };
     }

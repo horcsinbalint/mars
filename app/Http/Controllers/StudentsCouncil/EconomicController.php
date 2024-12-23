@@ -38,6 +38,7 @@ class EconomicController extends Controller
     public static function checkout(): Checkout
     {
         return Checkout::studentsCouncil();
+
     }
 
     /**
@@ -152,6 +153,8 @@ class EconomicController extends Controller
      */
     public function calculateWorkshopBalance()
     {
+        $this->authorize('calculateWorkshopBalance', Checkout::class);
+
         WorkshopBalance::generateBalances(Semester::current());
 
         return redirect()->back()->with('message', __('general.successful_modification'));

@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Http\Controllers\Auth\ApplicationController;
 use App\Models\Role;
 use App\Models\RoleObject;
 use App\Models\User;
@@ -14,6 +13,9 @@ class UserPolicy
 {
     use HandlesAuthorization;
 
+    /**
+     * We let admins do anything here.
+     */
     public function before(User $user)
     {
         if ($user->isAdmin()) {
@@ -33,7 +35,7 @@ class UserPolicy
             Role::SECRETARY,
             Role::DIRECTOR,
             Role::STUDENT_COUNCIL_SECRETARY,
-            Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS,
+            Role::STUDENT_COUNCIL => array_merge(Role::STUDENT_COUNCIL_LEADERS, Role::COMMITTEE_LEADERS),
         ]);
     }
 
@@ -66,7 +68,7 @@ class UserPolicy
                 Role::WORKSHOP_ADMINISTRATOR,
                 Role::WORKSHOP_LEADER,
                 Role::STUDENT_COUNCIL_SECRETARY,
-                Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS,
+                Role::STUDENT_COUNCIL => array_merge(Role::STUDENT_COUNCIL_LEADERS, Role::COMMITTEE_LEADERS),
             ]);
     }
 
@@ -96,11 +98,11 @@ class UserPolicy
             return true;
         }
         if ($target->isCollegist()) {
-            return (Cache::remember($user->id.'_is_secretary/director/s_council', 60, function () use ($user) {
+            return (Cache::remember($user->id . '_is_secretary/director/s_council', 60, function () use ($user) {
                 return $user->hasRole([
                     Role::SECRETARY,
                     Role::DIRECTOR,
-                    Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS,
+                    Role::STUDENT_COUNCIL => array_merge(Role::STUDENT_COUNCIL_LEADERS, Role::COMMITTEE_LEADERS),
                     Role::STUDENT_COUNCIL_SECRETARY,
                 ]);
             })) || $target->workshops
@@ -112,97 +114,6 @@ class UserPolicy
         return false;
     }
 
-    /** Application related policies */
-
-    /**
-     * @param User $user
-     * @param User $target
-     * @return bool
-     */
-    public function viewApplication(User $user, User $target): bool
-    {
-        if ($user->id == $target->id) {
-            return true;
-        }
-        if($user->can('viewAllApplications', User::class)) {
-            return true;
-        }
-
-        return $target->workshops
-                ->intersect($user->applicationCommitteWorkshops)
-                ->count() > 0
-            || $target->workshops
-                ->intersect($user->roleWorkshops)
-                ->count() > 0;
-    }
-
-    /**
-     * @param User $user
-     * @return bool
-     */
-    public function viewSomeApplication(User $user): bool
-    {
-        return $user->hasRole([
-            Role::SECRETARY,
-            Role::DIRECTOR,
-            Role::WORKSHOP_ADMINISTRATOR,
-            Role::WORKSHOP_LEADER,
-            Role::APPLICATION_COMMITTEE_MEMBER,
-            Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS,
-            Role::AGGREGATED_APPLICATION_COMMITTEE_MEMBER
-        ]);
-    }
-
-    /**
-     * @param User $user
-     * @return bool
-     */
-    public function editApplicationStatus(User $user): bool
-    {
-        return $user->hasRole([
-            Role::SECRETARY,
-            Role::DIRECTOR,
-            Role::WORKSHOP_LEADER,
-        Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS
-        ]);
-    }
-
-    /**
-     * @param User $user
-     * @return bool
-     */
-    public function viewAllApplications(User $user): bool
-    {
-        return $user->hasRole([
-            Role::SECRETARY,
-            Role::DIRECTOR,
-            Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS,
-            Role::AGGREGATED_APPLICATION_COMMITTEE_MEMBER
-        ]);
-    }
-
-    /**
-     * @param User $user
-     * @return bool
-     */
-    public function viewUnfinishedApplications(User $user): bool
-    {
-        return $user->hasRole([
-            Role::SECRETARY,
-            Role::DIRECTOR,
-            Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS,
-        ]);
-    }
-
-    /**
-     * Returns true if the user can finalize the application process.
-     * @param User $user
-     * @return bool
-     */
-    public function finalizeApplicationProcess(User $user): bool
-    {
-        return $user->hasRole([Role::SYS_ADMIN, Role::SECRETARY]);
-    }
 
     /** Permission related policies */
 
@@ -225,7 +136,7 @@ class UserPolicy
         }
 
         if ($role->name == Role::TENANT) {
-            return $user->hasRole([Role::STAFF, Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS]);
+            return $user->hasRole([Role::STAFF]);
         }
 
         if ($role->name == Role::COLLEGIST) {
@@ -258,7 +169,11 @@ class UserPolicy
         }
 
         if ($role->name == Role::APPLICATION_COMMITTEE_MEMBER) {
-            return $user->hasRole([Role::WORKSHOP_LEADER, Role::WORKSHOP_ADMINISTRATOR]);
+            return $user->hasRole([
+                Role::WORKSHOP_LEADER,
+                Role::WORKSHOP_ADMINISTRATOR,
+                Role::STUDENT_COUNCIL => [Role::PRESIDENT, Role::SCIENCE_VICE_PRESIDENT]
+            ]);
         }
 
         if ($role->name == Role::AGGREGATED_APPLICATION_COMMITTEE_MEMBER) {
@@ -271,6 +186,7 @@ class UserPolicy
                 Role::STUDENT_COUNCIL_SECRETARY
             ]);
         }
+
         return false;
     }
 
@@ -284,7 +200,7 @@ class UserPolicy
     public function updatePermission(User $user, User $target, Role $role, Workshop|RoleObject $object = null): bool
     {
         if ($role->name == Role::TENANT) {
-            return $user->hasRole([Role::STAFF, Role::STUDENT_COUNCIL => Role::STUDENT_COUNCIL_LEADERS]);
+            return $user->hasRole([Role::STAFF]);
         }
 
         if ($role->name == Role::COLLEGIST) {
@@ -292,7 +208,10 @@ class UserPolicy
         }
 
         if ($role->name == Role::APPLICATION_COMMITTEE_MEMBER) {
-            return $user->roleWorkshops->contains($object->id);
+            return $user->roleWorkshops->contains($object->id)
+                    || $user->hasRole([
+                        Role::STUDENT_COUNCIL => [Role::PRESIDENT, Role::SCIENCE_VICE_PRESIDENT]
+                    ]);
         }
 
         if ($role->name == Role::AGGREGATED_APPLICATION_COMMITTEE_MEMBER) {
@@ -329,13 +248,16 @@ class UserPolicy
             if ($user->hasRole(Role::STUDENT_COUNCIL_SECRETARY)) {
                 return true;
             }
-            if ($object->name == Role::PRESIDENT) {
+            if ($object?->name == Role::PRESIDENT) {
                 return false;
             }
             if ($user->hasRole([Role::STUDENT_COUNCIL => Role::PRESIDENT])) {
                 return true;
             }
-            if (in_array($object->name, Role::COMMITTEE_MEMBERS) || in_array($object->name, Role::COMMITTEE_REFERENTS)) {
+            if ($object?->name == Role::KKT_HANDLER) {
+                return $user->hasRole([Role::STUDENT_COUNCIL => Role::ECONOMIC_VICE_PRESIDENT]);
+            }
+            if (in_array($object?->name, Role::COMMITTEE_MEMBERS) || in_array($object?->name, Role::COMMITTEE_REFERENTS)) {
                 $committee = preg_split("~-~", $object->name)[0];
                 return $user->hasRole([Role::STUDENT_COUNCIL => $committee . "-leader"]);
             }
@@ -353,7 +275,7 @@ class UserPolicy
         if (!$target->isCollegist()) {
             return false;
         }
-        if ($user->hasRole(Role::SECRETARY)) {
+        if ($user->hasRole(Role::SECRETARY) || $user->hasRole([Role::STUDENT_COUNCIL => Role::SCIENCE_VICE_PRESIDENT])) {
             return true;
         }
         return $user->roleWorkshops->intersect($target->workshops)->count() > 0;
@@ -371,5 +293,23 @@ class UserPolicy
             return true;
         }
         return $user->roleWorkshops->has($workshop->id);
+    }
+
+    /**
+     * @param User $user
+     * @return bool
+     */
+    public function handleGuests(User $user): bool
+    {
+        return $user->hasRole(Role::STAFF);
+    }
+
+    /**
+     * @param User $user
+     * @return bool
+     */
+    public function invite(User $user): bool
+    {
+        return $user->hasRole(Role::SECRETARY);
     }
 }

@@ -14,7 +14,7 @@ class DataCompresser
      */
     public static function compressData($array): ?string
     {
-        if ($array === null) {
+        if ($array == null) {
             return null;
         }
 
@@ -41,7 +41,7 @@ class DataCompresser
      */
     public static function decompressData($string): array
     {
-        if ($string == "" || !isset($string)) {
+        if (!isset($string) || $string == "") {
             return [];
         }
 

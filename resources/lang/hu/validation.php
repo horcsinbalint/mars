@@ -45,11 +45,17 @@ return [
         'workshop' => 'műhely',
         'educational_email' => 'Egyetemi e-mail',
         'title' => 'cím',
+        'status' => 'státusz',
+        'picture' => 'kép',
         'subtitle' => 'alcím',
         'description' => 'leírás',
         'date' => 'dátum',
         'time' => 'időpont',
+        'now' => 'most',
+        'start_date' => 'esemény eleje',
         'end_date' => 'esemény vége',
+        'extended_end_date' => 'esemény meghosszabbított vége',
+        'show_until' => 'elérhető eddig',
         'details_name_1' => 'további infó neve',
         'details_name_2' => 'további infó neve',
         'details_url_1' => 'további infó címe',
@@ -60,6 +66,12 @@ return [
         'option' => 'szavazat',
         'alfonso_language' => 'Alfonsó nyelv',
         'alfonso_desired_level' => 'Alfonsó szint',
+        'semester_average' => array_fill(0, 10, 'korábbi szemeszter átlaga'), // from semester_average.0 to semester_average.9
+        'question_1' => "\"Honnan hallott a Collegiumról?\" kérdés",
+        'question_1_other' => "\"Honnan hallott a Collegiumról?\" kérdés egyéb mezője",
+        'question_2' => "\"Miért kíván a Collegium tagja lenni?\" kérdés",
+        'reserved_from' => 'kezdési dátum',
+        'reserved_until' => 'befejezési dátum'
     ],
     'before' => 'A(z) :attribute :date előtti dátum kell, hogy legyen!',
     'before_or_equal' => 'A(z) :attribute nem lehet későbbi dátum, mint :date!',
@@ -164,4 +176,12 @@ return [
     'uploaded' => 'A(z) :attribute feltöltése sikertelen.',
     'url' => 'A(z) :attribute érvénytelen link.',
     'uuid' => ':attribute érvényes UUID-val kell rendelkezzen.',
+    'values' => [
+        'reserved_from' => [
+            'now' => 'az aktuális idő'
+        ],
+        'reserved_until' => [
+            'now' => 'az aktuális idő'
+        ]
+    ]
 ];

@@ -1,16 +1,24 @@
-
-## Development environment
+# Development environment
 
 There are several ways to set up your development server and environment. Basically, you only need a running php server that uses the /public folder and an sql database connected to it. There are some tips how to achieve that (and even more) below.
 
-### Developing on the cloud with gitpod (for starters or for slow machines)
+## Developing on the cloud with gitpod (for starters or for slow machines)
 
 1. Ask for access to our gitpod organization
 2. Go to projects, and go to the bracnhes under the Mars project. Create a new workspace for your branch and open it in the browser or VS Code locally.
 3. You will see three terminals. One for the server, one for npm, and one for the database. You can close the last two once the scripts are finished, but you still need to run `php artisan migrate:fresh --seed` to get the DB seeded. The site is served at `http://localhost:8000` (or check the first few lines server logs). 
 4. Use with care, we have 50 hours of free usage per month. 
 
-### Universal (using VS Code dev containers  - recommended)
+## Universal (using Docker - recommended)
+
+This setup uses Docker to run the app and the database,
+therefore it is very easy to set up on any platform that supports Docker (Linux, Windows via WSL2, etc.).
+This setup is also recommended if you don't want to install PHP and other dependencies on your host machine,
+or if you already have a different (incompatible) version of PHP installed.
+
+The instructions can be found in the [docker-dev-setup/README.md file](docker-dev-setup/README.md).
+
+## Universal (using VS Code dev containers  - recommended)
 
  1. Clone Mars: `git clone git@github.com:EotvosCollegium/mars.git`.
  2. Install [Composer](https://getcomposer.org/) and run `composer install` in the project directory.
@@ -22,10 +30,10 @@ There are several ways to set up your development server and environment. Basica
 
 Note: to regenerate the docker configuration, use `php artisan sail:install --devcontainer`
 
-### OS X
+## OS X
 For OS X, [Valet](https://laravel.com/docs/6.x/valet) gives a pretty smooth experience. Easy to download, easy to configure.
 
-### Windows and Linux
+## Windows and Linux
 
 For Windows and Linux the project has an example [Laravel Homestead](https://laravel.com/docs/homestead) configuration which can be used for local development.
 
@@ -55,20 +63,53 @@ With these steps you should be able to run Mars on your machine:
 
 11. The project should be running at [mars.local](http://mars.local/).
 
-### Optional steps
+## Optional steps
 
 -   You can add your personal access token from GitHub to use the GitHub API (eg. bug reports are sent through this). [You can generate a token here.](https://github.com/settings/tokens) You have to check the 'public_repo' scope.
 -   If you want to test emails, change `MAIL_TEST_ADMIN` to your email (after seeding, you will be able to log in to the admin user with this email address) and set your email credentials (`MAIL_USERNAME` and `MAIL_PASSWORD`) - you might have to enable third party access to your email account.
 -  If you are working with uploaded files, run `php artisan storage:link` to make the uploads available by their paths in the url.
 
-### For everyday use
+## For everyday use
 
 Most of the above setup is a one-time thing to do. However, whenever you start working on based on a newer version, you will have to run the following commands:
 
 -   `npm run dev`: In case of recent UI changes (ie. JS or CSS), this will generate the new assets from `webpack.mix.js`. For frontend developers, `npm watch` might be useful -- it does the same, but also updates on change.
--   `php artisan migrate:fresh --seed`: This will migrate everything from scratch (useful if you work on changes in parallel) and seeds the database.
+-   `php artisan migrate:fresh --seed`: This will migrate everything from scratch (useful if you work on changes in parallel) and seeds the database (so it basically resets the database).
 
-You can log in to our seeded admin user with email `MAIL_TEST_ADMIN` (`example@eotvos.elte.hu` by default - you can find this in your .env file) and with password `asdasdasd`. See `database/seeds/UsersTableSeeder.php` for more predefined users.
+You can log in to our seeded admin user with email `MAIL_TEST_ADMIN` (`example@eotvos.elte.hu` by default - you can find this in your .env file) and with password `asdasdasd`.
+A regular account is available via the `collegist@eotvos.elte.hu` email address and the same password.
+See `database/seeds/UsersTableSeeder.php` for more predefined users.
+
+## IDE integration
+
+#### Visual Studio Code (vsc, vscode)
+
+- If you are on Windows, make sure to use the WSL plugin and follow its instructions
+- This section is a stub, feel free to contribute
+
+#### PHPStorm
+
+- Create a run configuration for `php artisan serve`:
+  - Create a new Shell Script run configuration under Run / Edit Configurations
+  - Set an appropriate name, select "Script text" and paste the following: `php artisan serve --host=0.0.0.0`
+  - Now you can just click the run button to start the development server
+  - Feel free to repeat this step for other commands you frequently use, e.g. database migrations
+- Add support for Laravel Eloquent:
+  - Generate IDE helper files: run `php artisan clear-compiled && php artisan ide-helper:refresh`
+  - In PHPStorm click on: File / Invalidate caches / Invalidate and Restart (this step might not be needed)
+  - Now `self::where(...)`, `@mixin \Eloquent`, etc. shouldn't get marked as errors
+- Add advanced support for Laravel:
+  - Install the 3rd party [Laravel Idea](https://plugins.jetbrains.com/plugin/13441-laravel-plugin) plugin
+    - This is a paid plugin, but [students can get a license for free](https://plugins.jetbrains.com/docs/marketplace/community-programs.html#how-to-apply)
+  - Now a "Laravel" option should appear in your menu bar, and you should have access to numerous other powerful features
+- Database integration:
+  - Add a new MySQL [data source](https://www.jetbrains.com/help/phpstorm/connecting-to-a-database.html) with the credentials found in the `.env` file
+  - Install the 3rd party [Laravel Query](https://plugins.jetbrains.com/plugin/16309-laravel-query) plugin
+  - Now auto-completion and validation will be available for model columns in queries among other features
+- Excluding libraries and automatically generated files/folders from indexing and search:
+  - Open a .gitignore file and agree to exclude the files/folders that are excluded from version control
+  - Manually exclude the following folders: `storage/debugbar`, `storage/framework`, `storage/logs`
+  - Now you should see less irrelevant search results and warnings
 
 ## Alternative: running Docker from terminal with Sail
 

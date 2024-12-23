@@ -13,18 +13,21 @@
         <blockquote>
             <p>
             @lang('print.pdf_description')
-            @lang("print.pdf_maxsize", ['maxsize' => config('print.pdf_size_limit')/1000/1000])
-            @lang('print.costs',['one_sided'=>config('print.one_sided_cost'), "two_sided" => config('print.two_sided_cost')])
+            @lang("print.pdf_maxsize", ['maxsize' => config('print.pdf_size_limit')/1000])
+            @lang('print.costs',['one_sided' => config('print.one_sided_cost'), "two_sided" => config('print.two_sided_cost')])
             </p><p>
             @lang('print.available_money'): <b class="coli-text text-orange"> {{ $printAccount->balance }}</b> HUF.
             @lang('print.upload_money')
+            </p>
+            <p>
+            @lang('print.payment_methods_cannot_be_mixed')
             </p>
         </blockquote>
         <form class="form-horizontal" role="form" method="POST" action="{{ route('print-job.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="row">
                 <x-input.file l=8 xl=10 id="file" accept=".pdf" required text="print.select_document"/>
-                <x-input.text l=4 xl=2  id="copies" type="number" min="1" value="1" required text="print.number_of_copies"/>
+                <x-input.text l=4 xl=2  id="copies" type="number" min="1" :value="1" required text="print.number_of_copies"/>
                 <x-input.checkbox s=8 xl=4 name="two_sided" checked text="print.twosided"/>
                 @if($printAccount->available_free_pages->sum('amount') > 0) {{-- only show when user have active free pages --}}
                     <x-input.checkbox s=8 xl=4 name="use_free_pages" text="print.use_free_pages" 

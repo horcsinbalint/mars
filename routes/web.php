@@ -11,6 +11,7 @@
 |
 */
 
+use App\Http\Controllers\Auth\AdmissionController;
 use App\Http\Controllers\Auth\ApplicationController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Dormitory\FaultController;
@@ -27,10 +28,13 @@ use App\Http\Controllers\Network\AdminInternetController;
 use App\Http\Controllers\Network\InternetController;
 use App\Http\Controllers\Network\MacAddressController;
 use App\Http\Controllers\Network\RouterController;
+use App\Http\Controllers\IssuesController;
 use App\Http\Controllers\Secretariat\DocumentController;
-use App\Http\Controllers\Secretariat\RegistrationsController;
+use App\Http\Controllers\Secretariat\GuestsController;
+use App\Http\Controllers\Secretariat\InvitationController;
 use App\Http\Controllers\Secretariat\SemesterEvaluationController;
 use App\Http\Controllers\Secretariat\UserController;
+use App\Http\Controllers\StudentsCouncil\AnonymousQuestionController;
 use App\Http\Controllers\StudentsCouncil\CommunityServiceController;
 use App\Http\Controllers\StudentsCouncil\EconomicController;
 use App\Http\Controllers\StudentsCouncil\EpistolaController;
@@ -38,6 +42,12 @@ use App\Http\Controllers\StudentsCouncil\GeneralAssemblyController;
 use App\Http\Controllers\StudentsCouncil\GeneralAssemblyPresenceCheckController;
 use App\Http\Controllers\StudentsCouncil\GeneralAssemblyQuestionController;
 use App\Http\Controllers\StudentsCouncil\MrAndMissController;
+use App\Http\Controllers\Dormitory\Reservations\ReservableItemController;
+use App\Http\Controllers\Dormitory\Reservations\ReservationController;
+use App\Http\Middleware\LogRequests;
+use App\Http\Middleware\OnlyHungarian;
+use App\Http\Middleware\EnsureVerified;
+use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -64,44 +74,47 @@ Route::get('/privacy_policy', [HomeController::class, 'privacyPolicy'])->name('p
 Route::get('/img/{filename}', [HomeController::class, 'getPicture']);
 Route::get('/setlocale/{locale}', [HomeController::class, 'setLocale'])->name('setlocale');
 
-Auth::routes();
+Auth::routes(['register' => false]); //check \Laravel\Ui\AuthRouteMethods
 
-Route::get('/register/guest', [RegisterController::class, 'showTenantRegistrationForm'])->name('register.guest');
+/* Override the /register route from Auth::routes to force Hungarian */
+Route::prefix('/register')->group(function () {
+    Route::post('/', [RegisterController::class, 'register']);
 
-Route::middleware(['auth', 'log', 'only_hungarian'])->group(function () {
-    Route::get('/application', [ApplicationController::class, 'showApplicationForm'])->name('application');
+    Route::get('/', [RegisterController::class, 'showRegistrationForm'])->name('register')->middleware(OnlyHungarian::class);
+    Route::get('/guest', [RegisterController::class, 'showTenantRegistrationForm'])->name('register.guest');
 });
-Route::middleware(['auth', 'log'])->group(function () {
+
+Route::middleware([Authenticate::class, LogRequests::class])->group(function () {
     /** Routes that needs to be accessed during the application process */
-    Route::post('/application', [ApplicationController::class, 'storeApplicationForm'])->name('application.store');
+    Route::get('/application', [ApplicationController::class, 'show'])->name('application')->middleware(OnlyHungarian::class);
+    Route::post('/application', [ApplicationController::class, 'store'])->name('application.store');
     Route::post('/users/{user}/profile_picture', [UserController::class, 'storeProfilePicture'])->name('users.update.profile-picture');
     Route::delete('/users/{user}/profile_picture', [UserController::class, 'deleteProfilePicture'])->name('users.delete.profile-picture');
     Route::post('/users/{user}/personal_information', [UserController::class, 'updatePersonalInformation'])->name('users.update.personal');
     Route::post('/users/{user}/educational_information', [UserController::class, 'updateEducationalInformation'])->name('users.update.educational');
     Route::post('/users/{user}/alfonso', [UserController::class, 'updateAlfonsoStatus'])->name('users.update.alfonso');
     Route::post('/users/{user}/language_exam', [UserController::class, 'uploadLanguageExam'])->name('users.language_exams.upload');
-    Route::post('/application/finalize', [ApplicationController::class, 'finalizeApplicationProcess'])->name('application.finalize');
+    Route::delete('/users/{user}/language_exam/{exam}', [UserController::class, 'deleteLanguageExam'])->name('users.language_exams.delete');
 });
 
-Route::middleware(['auth', 'log', 'verified'])->group(function () {
+Route::middleware([Authenticate::class, LogRequests::class, EnsureVerified::class])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
     Route::post('/home/edit', [HomeController::class, 'editNews'])->name('home.edit');
-    Route::post('/color/{mode}', [HomeController::class, 'colorMode'])->name('set-color-mode');
 
-    Route::post('/report_bug', [HomeController::class, 'reportBug'])->name('reportbug');
-    Route::get('/report_bug', [HomeController::class, 'indexReportBug'])->name('index_reportbug');
+    /** Issue reporting */
+    Route::get('/issues', [IssuesController::class, 'create'])->name('issues.create');
+    Route::post('/issues/create', [IssuesController::class, 'store'])->name('issues.store');
 
     /** User related routes */
     Route::get('/profile', [UserController::class, 'profile'])->name('profile');
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
-    Route::get('/users/export', [UserController::class, 'export'])->name('users.export');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
     Route::post('/users/{user}/tenant_until', [UserController::class, 'updateTenantUntil'])->name('users.update.tenant_until');
     Route::post('/users/{user}/roles/{role}', [UserController::class, 'addRole'])->name('users.roles.add');
     Route::delete('/users/{user}/roles/{role}', [UserController::class, 'removeRole'])->name('users.roles.delete');
-    Route::post('/users/update_password', [UserController::class, 'updatePassword'])->name('users.update.password')->withoutMiddleware('log');
+    Route::post('/users/update_password', [UserController::class, 'updatePassword'])->name('users.update.password')->withoutMiddleware(LogRequests::class);
     Route::get('/users/tenant_update/show', [UserController::class, 'showTenantUpdate'])->name('users.tenant-update.show');
-    Route::get('/users/tenant_update/applicant', [UserController::class, 'tenantToApplicant'])->name('users.tenant-update.to-applicant');
+    Route::post('/users/tenant_update/applicant', [UserController::class, 'tenantToApplicant'])->name('users.tenant-update.to-applicant');
 
     /** Localization */
     Route::get('/localizations', [LocaleController::class, 'index'])->name('localizations');
@@ -158,22 +171,25 @@ Route::middleware(['auth', 'log', 'verified'])->group(function () {
     Route::get('/routers', [RouterController::class, 'index'])->name('routers');
     Route::get('/routers/create', [RouterController::class, 'create'])->name('routers.create');
     Route::post('/routers/create', [RouterController::class, 'store'])->name('routers.store');
-    Route::get('/routers/{ip}', [RouterController::class, 'view'])->name('routers.view');
-    Route::get('/routers/{ip}/edit', [RouterController::class, 'edit'])->name('routers.edit');
-    Route::post('/routers/{ip}/edit', [RouterController::class, 'update'])->name('routers.update');
-    Route::post('/routers/{ip}/delete', [RouterController::class, 'delete'])->name('routers.delete');
+    Route::get('/routers/{router}', [RouterController::class, 'view'])->name('routers.view');
+    Route::get('/routers/{router}/edit', [RouterController::class, 'edit'])->name('routers.edit');
+    Route::post('/routers/{router}/edit', [RouterController::class, 'update'])->name('routers.update');
+    Route::post('/routers/{router}/delete', [RouterController::class, 'delete'])->name('routers.delete');
 
     /** Registration handling */
-    Route::middleware(['can:registration.handle'])->group(function () {
-        Route::get('/secretariat/registrations', [RegistrationsController::class, 'index'])->name('secretariat.registrations');
-        Route::get('/secretariat/registrations/accept/{id}', [RegistrationsController::class, 'accept'])->name('secretariat.registrations.accept');
-        Route::get('/secretariat/registrations/reject/{id}', [RegistrationsController::class, 'reject'])->name('secretariat.registrations.reject');
-        Route::post('/secretariat/registrations/invite', [RegistrationsController::class, 'invite'])->name('secretariat.registrations.invite');
-    });
-    /** Application handling */
-    Route::get('/applications', [ApplicationController::class, 'showApplications'])->name('applications');
-    Route::post('/applications', [ApplicationController::class, 'editApplication'])->name('applications.edit');
-    Route::get('/applications/export', [ApplicationController::class, 'exportApplications'])->name('applications.export');
+    Route::get('/secretariat/registrations', [GuestsController::class, 'index'])->name('secretariat.registrations');
+    Route::get('/secretariat/registrations/accept/{id}', [GuestsController::class, 'accept'])->name('secretariat.registrations.accept');
+    Route::get('/secretariat/registrations/reject/{id}', [GuestsController::class, 'reject'])->name('secretariat.registrations.reject');
+    Route::post('/secretariat/invite', [InvitationController::class, 'store'])->name('secretariat.invite');
+
+    /** Admission and applicants handling */
+    Route::post('/admission/period/update', [AdmissionController::class, 'updateApplicationPeriod'])->name('admission.period.update');
+    Route::get('/admission/finalize', [AdmissionController::class, 'indexFinalize'])->name('admission.finalize.index');
+    Route::post('/admission/finalize', [AdmissionController::class, 'finalize'])->name('admission.finalize');
+
+    Route::get('/applicants', [AdmissionController::class, 'index'])->name('admission.applicants.index');
+    Route::get('/applicants/{application}', [AdmissionController::class, 'show'])->name('admission.applicants.show');
+    Route::post('/applicants/{application}', [AdmissionController::class, 'update'])->name('admission.applicants.update');
 
     /** Faults */
     Route::get('/faults', [FaultController::class, 'index'])->name('faults');
@@ -190,6 +206,7 @@ Route::middleware(['auth', 'log', 'verified'])->group(function () {
     /** Evaluation form */
     Route::get('/secretariat/evaluation', [SemesterEvaluationController::class, 'show'])->name('secretariat.evaluation.show');
     Route::post('/secretariat/evaluation', [SemesterEvaluationController::class, 'store'])->name('secretariat.evaluation.store');
+    Route::post('/secretariat/evaluation/period', [SemesterEvaluationController::class, 'updateEvaluationPeriod'])->name('secretariat.evaluation.period.update');
 
     /** Documents */
     Route::get('/documents', [DocumentController::class, 'index'])->name('documents');
@@ -228,13 +245,14 @@ Route::middleware(['auth', 'log', 'verified'])->group(function () {
     Route::get('/communication_committee/epistola/preview', [EpistolaController::class, 'preview'])->name('epistola.preview');
     Route::get('/communication_committee/epistola/send', [EpistolaController::class, 'send'])->name('epistola.send');
 
-    Route::get('/community_committee/mr_and_miss/vote', [MrAndMissController::class, 'indexVote'])->name('mr_and_miss.vote');
+    Route::get('/community_committee/mr_and_miss', [MrAndMissController::class, 'index'])->name('mr_and_miss.index');
     Route::post('/community_committee/mr_and_miss/vote', [MrAndMissController::class, 'saveVote'])->name('mr_and_miss.vote.save');
     Route::post('/community_committee/mr_and_miss/vote/custom', [MrAndMissController::class, 'customVote'])->name('mr_and_miss.vote.custom');
-    Route::get('/community_committee/mr_and_miss/categories', [MrAndMissController::class, 'indexCategories'])->name('mr_and_miss.categories');
-    Route::post('/community_committee/mr_and_miss/categories', [MrAndMissController::class, 'createCategory'])->name('mr_and_miss.categories.create');
-    Route::post('/community_committee/mr_and_miss/categories/create', [MrAndMissController::class, 'editCategories'])->name('mr_and_miss.categories.edit');
-    Route::get('/community_committee/mr_and_miss/results', [MrAndMissController::class, 'indexResults'])->name('mr_and_miss.results');
+    Route::get('/community_committee/mr_and_miss/admin', [MrAndMissController::class, 'indexAdmin'])->name('mr_and_miss.admin');
+    Route::post('/community_committee/mr_and_miss/admin/categories', [MrAndMissController::class, 'createCategory'])->name('mr_and_miss.categories.create');
+    Route::post('/community_committee/mr_and_miss/admin/categories/create', [MrAndMissController::class, 'editCategories'])->name('mr_and_miss.categories.edit');
+    Route::post('/community_committee/mr_and_miss/admin/period', [MrAndMissController::class, 'updateVotePeriod'])->name('mr_and_miss.period.update');
+    Route::get('/community_committee/mr_and_miss/admin/results', [MrAndMissController::class, 'indexResults'])->name('mr_and_miss.results');
 
     Route::get('/community_service', [CommunityServiceController::class, 'index'])->name('community_service');
     Route::post('/community_service/approve/{community_service}', [CommunityServiceController::class, 'approve'])->name('community_service.approve');
@@ -253,14 +271,65 @@ Route::middleware(['auth', 'log', 'verified'])->group(function () {
 
     Route::get('/general_assemblies/{general_assembly}/questions/create', [GeneralAssemblyQuestionController::class, 'create'])->name('general_assemblies.questions.create');
     Route::post('/general_assemblies/{general_assembly}/questions', [GeneralAssemblyQuestionController::class, 'store'])->name('general_assemblies.questions.store');
-    Route::get('/general_assemblies/{general_assembly}/questions/{question}', [GeneralAssemblyQuestionController::class, 'show'])->name('general_assemblies.questions.show');
-    Route::post('/general_assemblies/{general_assembly}/questions/{question}/open', [GeneralAssemblyQuestionController::class, 'openQuestion'])->name('general_assemblies.questions.open');
-    Route::post('/general_assemblies/{general_assembly}/questions/{question}/close', [GeneralAssemblyQuestionController::class, 'closeQuestion'])->name('general_assemblies.questions.close');
-    Route::post('/general_assemblies/{general_assembly}/questions/{question}/votes', [GeneralAssemblyQuestionController::class, 'saveVote'])->name('general_assemblies.questions.votes.store')->withoutMiddleware('log');
+    Route::get('/general_assemblies/{general_assembly}/questions/{question}', [GeneralAssemblyQuestionController::class, 'show'])
+                ->name('general_assemblies.questions.show')
+                ->scopeBindings();
+    Route::post('/general_assemblies/{general_assembly}/questions/{question}/open', [GeneralAssemblyQuestionController::class, 'openQuestion'])
+                ->name('general_assemblies.questions.open')
+                ->scopeBindings();
+    Route::post('/general_assemblies/{general_assembly}/questions/{question}/close', [GeneralAssemblyQuestionController::class, 'closeQuestion'])
+                ->name('general_assemblies.questions.close')
+                ->scopeBindings();
+    Route::post('/general_assemblies/{general_assembly}/questions/{question}/votes', [GeneralAssemblyQuestionController::class, 'saveVote'])
+                ->name('general_assemblies.questions.votes.store')
+                ->withoutMiddleware(LogRequests::class)
+                ->scopeBindings();
 
-    Route::get('/general_assemblies/{general_assembly}/presence_checks/create', [GeneralAssemblyPresenceCheckController::class, 'create'])->name('general_assemblies.presence_checks.create');
-    Route::post('/general_assemblies/{general_assembly}/presence_checks', [GeneralAssemblyPresenceCheckController::class, 'store'])->name('general_assemblies.presence_checks.store');
-    Route::get('/general_assemblies/{general_assembly}/presence_checks/{presence_check}', [GeneralAssemblyPresenceCheckController::class, 'show'])->name('general_assemblies.presence_checks.show');
-    Route::post('/general_assemblies/{general_assembly}/presence_checks/{presence_check}/close', [GeneralAssemblyPresenceCheckController::class, 'closePresenceCheck'])->name('general_assemblies.presence_checks.close');
-    Route::post('/general_assemblies/{general_assembly}/presence_checks/{presence_check}/sign_presence', [GeneralAssemblyPresenceCheckController::class, 'signPresence'])->name('general_assemblies.presence_checks.presence.store')->withoutMiddleware('log');
+    Route::prefix('reservations')->name('reservations.')->group(function () {
+        Route::resource('items', ReservableItemController::class)->only([
+            'index', 'create', 'store', 'show', 'delete'
+        ]);
+        Route::post('/items/{item}/report_fault', [ReservableItemController::class, 'reportFault'])->name('items.report_fault');
+        Route::post('/items/{item}/toggle_out_of_order', [ReservableItemController::class, 'toggleOutOfOrder'])->name('items.toggle_out_of_order');
+        Route::get('/items/{item}/print', [ReservableItemController::class, 'showPrintVersion'])->name('items.show_print_version');
+
+        Route::get('/for_item/{item}', [ReservationController::class, 'index'])->name('index');
+        Route::get('/{reservation}', [ReservationController::class, 'show'])->name('show');
+        Route::get('/create/for_item/{item}', [ReservationController::class, 'create'])->name('create');
+        Route::post('/for_item/{item}', [ReservationController::class, 'store'])->name('store');
+        Route::get('/{reservation}/edit', [ReservationController::class, 'edit'])->name('edit');
+        Route::post('/{reservation}', [ReservationController::class, 'update'])->name('update');
+        Route::post('/{reservation}/delete', [ReservationController::class, 'delete'])->name('delete');
+        Route::post('/{reservation}/verify', [ReservationController::class, 'verify'])->name('verify');
+        Route::post('/{reservation}/delete_all', [ReservationController::class, 'deleteAll'])->name('delete_all');
+        Route::post('/{reservation}/verify_all', [ReservationController::class, 'verifyAll'])->name('verify_all');
+    });
+
+    Route::get('/general_assemblies/{general_assembly}/presence_checks/create', [GeneralAssemblyPresenceCheckController::class, 'create'])
+                ->name('general_assemblies.presence_checks.create');
+    Route::post('/general_assemblies/{general_assembly}/presence_checks', [GeneralAssemblyPresenceCheckController::class, 'store'])
+                ->name('general_assemblies.presence_checks.store');
+    Route::get('/general_assemblies/{general_assembly}/presence_checks/{presence_check}', [GeneralAssemblyPresenceCheckController::class, 'show'])
+                ->name('general_assemblies.presence_checks.show')
+                ->scopeBindings();
+    Route::post('/general_assemblies/{general_assembly}/presence_checks/{presence_check}/close', [GeneralAssemblyPresenceCheckController::class, 'closePresenceCheck'])
+                ->name('general_assemblies.presence_checks.close')
+                ->scopeBindings();
+    Route::post('/general_assemblies/{general_assembly}/presence_checks/{presence_check}/sign_presence', [GeneralAssemblyPresenceCheckController::class, 'signPresence'])
+                ->name('general_assemblies.presence_checks.presence.store')->withoutMiddleware(LogRequests::class)
+                ->scopeBindings();
+
+    /** anonymous questions */
+    Route::prefix('/anonymous_questions')->name('anonymous_questions.')->group(function () {
+        Route::get('/', [AnonymousQuestionController::class, 'indexSemesters'])->name('index_semesters');
+        Route::get('/{semester}/questions/', [AnonymousQuestionController::class, 'index'])->name('index');
+        Route::get('/{semester}/questions/create', [AnonymousQuestionController::class, 'create'])->name('create');
+        Route::post('/{semester}/questions', [AnonymousQuestionController::class, 'store'])->name('store');
+        Route::get('/{semester}/questions/{question}', [AnonymousQuestionController::class, 'show'])->name('show')
+            ->withoutMiddleware([LogRequests::class])
+            ->scopeBindings();
+        Route::post('/{semester}/sheets/', [AnonymousQuestionController::class, 'storeAnswerSheet'])->name('store_answer_sheet')
+            ->withoutMiddleware([LogRequests::class]);
+        Route::get('/{semester}/sheets/', [AnonymousQuestionController::class, 'exportAnswerSheets'])->name('export_answer_sheets');
+    });
 });
