@@ -20,8 +20,7 @@
             @lang('print.upload_money')
             </p>
         </blockquote>
-        <form class="form-horizontal" role="form" method="POST" action="{{ route('print-job.store') }}"
-            enctype="multipart/form-data">
+        <form class="form-horizontal" role="form" method="POST" action="{{ route('print-job.store') }}" enctype="multipart/form-data">
             @csrf
             <div class="row">
                 <x-input.file l=8 xl=10 id="file" accept=".pdf" required text="print.select_document"/>

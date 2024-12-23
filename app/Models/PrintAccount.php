@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -69,9 +70,11 @@ class PrintAccount extends Model
      * The free pages which are currently available. Sorts the free pages by their deadline.
      * @return Collection
      */
-    public function getAvailableFreePagesAttribute()
+    public function availableFreePages()
     {
-        return $this->freePages()->where('deadline', '>', now())->orderBy('deadline')->get();
+        return Attribute::make(
+            get: fn () => $this->freePages()->where('deadline', '>', now())->orderBy('deadline')->get()
+        );
     }
 
     /**
@@ -84,8 +87,8 @@ class PrintAccount extends Model
      */
     public function hasEnoughFreePages(int $pages, int $copies, bool $twoSided)
     {
-        return $this->getAvailableFreePagesAttribute()->sum('amount') >
-            PrinterHelper::getFreePagesNeeeded($pages, $copies, $twoSided);
+        return $this->available_free_pages->sum('amount') >
+            PrinterHelper::getFreePagesNeeded($pages, $copies, $twoSided);
     }
 
     /**
@@ -98,6 +101,50 @@ class PrintAccount extends Model
     public function hasEnoughBalance(int $pages, int $copies, bool $twoSided)
     {
         return $this->balance >= PrinterHelper::getBalanceNeeded($pages, $twoSided, $copies);
+    }
+
+    /**
+     * Returns wether the user has enough balance or free pages to print a document.
+     * @param bool $useFreePages
+     * @param int $pages
+     * @param int $copies
+     * @param bool $twoSided
+     * @return bool
+     */
+    public function hasEnoughBalanceOrFreePages(bool $useFreePages, int $pages, int $copies, bool $twoSided)
+    {
+        return $useFreePages ? $this->hasEnoughFreePages($pages, $copies, $twoSided) : $this->hasEnoughBalance($pages, $copies, $twoSided);
+    }
+
+    public function updateHistory(bool $useFreePages, int $cost) {
+        // Update the print account history
+        $this->last_modified_by = user()->id;
+
+        if ($useFreePages) {
+            $freePagesToSubtract = $cost;
+            $availableFreePages = $this->available_free_pages->where('amount', '>', 0);
+
+            // Subtract the pages from the free pages pool, as many free pages as necessary
+            /** @var FreePages */
+            foreach ($availableFreePages as $freePages) {
+                $subtractablePages = $freePages->calculateSubtractablePages($freePagesToSubtract);
+                $freePages->subtractPages($subtractablePages);
+                $freePagesToSubtract -= $subtractablePages;
+
+                if ($freePagesToSubtract <= 0) { // < should not be necessary, but better safe than sorry
+                    break;
+                }
+            }
+            // Set value in the session so that free page checkbox stays checked
+            session()->put('use_free_pages', true);
+        } else {
+            $this->balance -= $cost;
+
+            // Remove value regarding the free page checkbox from the session
+            session()->remove('use_free_pages');
+        }
+
+        $this->save();
     }
 
 

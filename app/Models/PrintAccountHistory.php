@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 // Note: the elements of this class should no be changed manually.
-// Obeservers are set up.
+// Observers for updating entries are set up.
 /**
  * App\Models\PrintAccountHistory
  *

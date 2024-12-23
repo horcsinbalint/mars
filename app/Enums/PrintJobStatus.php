@@ -7,4 +7,5 @@ enum PrintJobStatus: string {
     case ERROR = 'ERROR';
     case CANCELLED = 'CANCELLED';
     case SUCCESS = 'SUCCESS';
+    // case REIMBURSED = 'REIMBURSED';
 }

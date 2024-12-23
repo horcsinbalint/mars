@@ -20,7 +20,7 @@ class PrintAccountHistoryController extends Controller
      * @throws BindingResolutionException
      * @throws InvalidArgumentException
      */
-    public function indexPrintAccountHistory()
+    public function index()
     {
         $this->authorize('viewAny', PrintJob::class);
 

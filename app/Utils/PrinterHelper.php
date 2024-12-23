@@ -50,7 +50,7 @@ class PrinterHelper
      * @param mixed $twoSided
      * @return int|float
      */
-    public static function getFreePagesNeeeded(int $pages, $copies, $twoSided)
+    public static function getFreePagesNeeded(int $pages, $copies, $twoSided)
     {
         $pageTypesNeeded = self::getPageTypesNeeded($pages, $twoSided);
 

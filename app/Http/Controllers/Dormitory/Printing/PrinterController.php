@@ -15,23 +15,27 @@ use Illuminate\Support\Facades\Mail;
 class PrinterController extends Controller
 {
     /**
-     * Returns the print page for either the admin or the normal page.
-     * @param null|string $page Determines wether we are on the admin or the normal printing page.
+     * Returns the print page.
      * @return View
      */
-    public function index(?string $page = null)
+    public function index()
     {
-        if ($page === "admin") {
-            $this->authorize('handleAny', PrintAccount::class);
-
-            return view('dormitory.print.manage.app', ["users" => User::all()]);
-        }
-
         return view('dormitory.print.app', [
             "users" => User::all(),
             "user" => user(),
             "printer" => Printer::firstWhere('name', config('print.printer_name')),
         ]);
+    }
+
+    /**
+     * Returns the admin print page.
+     * @return View
+     */
+    public function adminIndex()
+    {
+        $this->authorize('handleAny', PrintAccount::class);
+
+        return view('dormitory.print.manage.app', ["users" => User::all()]);
     }
 
     /**
@@ -47,8 +51,7 @@ class PrinterController extends Controller
             if ($printer->paper_out_at === null || now()->diffInMinutes($printer->paper_out_at) > 5) {
                 Mail::to(User::withRole(Role::SYS_ADMIN)->get())->queue(new NoPaper(user()->name));
             }
-            $printer->paper_out_at = now();
-            $printer->save();
+            $printer->update(['paper_out_at' => now()]);
             return redirect()->back()->with('message', __('mail.email_sent'));
         } else {
             $this->authorize('handleAny', PrintAccount::class);

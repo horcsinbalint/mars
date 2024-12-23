@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use Psr\Container\NotFoundExceptionInterface;
 use Psr\Container\ContainerExceptionInterface;
 use App\Utils\Process;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\MassAssignmentException;
 
 class Printer extends Model {
     use HasFactory;
@@ -33,6 +35,33 @@ class Printer extends Model {
      */
     public function printJobs() {
         return $this->hasMany(PrintJob::class);
+    }
+
+
+    /**
+     * Starts a new print job for the current user and saves it.
+     * @param bool $useFreePages 
+     * @param int $cost 
+     * @param string $filePath 
+     * @param string $originalName 
+     * @param bool $twoSided 
+     * @param int $copyNumber 
+     * @return Model 
+     * @throws AuthenticationException 
+     * @throws PrinterException 
+     * @throws MassAssignmentException 
+     */
+    public function createPrintJob(bool $useFreePages, int $cost, string $filePath, string $originalName, bool $twoSided, int $copyNumber) {
+        $jobId = $this->print($twoSided, $copyNumber, $filePath, user());
+
+        return user()->printJobs()->create([
+            'printer_id' => $this->id,
+            'state' => PrintJobStatus::QUEUED,
+            'job_id' => $jobId,
+            'cost' => $cost,
+            'used_free_pages' => $useFreePages,
+            'filename' => $originalName,
+        ]);
     }
 
     /**

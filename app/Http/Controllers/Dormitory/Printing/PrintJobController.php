@@ -16,42 +16,28 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
 class PrintJobController extends Controller
 {
     /**
-     * Returns a paginated list of `PrintJob`s.
-     * @param null|string $filter Decides wether all `PrintJob`s or just the user's `PrintJob`s should be listed.
+     * Returns a paginated list of the current user's `PrintJob`s.
      * @return LengthAwarePaginator
      */
-    public function indexPrintJobs(?string $filter = null)
+    public function index()
     {
-        if ($filter === "all") {
-            $this->authorize('viewAny', PrintJob::class);
-
-            PrinterHelper::updateCompletedPrintJobs();
-
-            return $this->paginatorFrom(
-                printJobs: PrintJob::query()
-                    ->with('user')
-                    ->orderBy('print_jobs.created_at', 'desc'),
-                columns: [
-                    'created_at',
-                    'filename',
-                    'cost',
-                    'state',
-                    'user.name',
-                ]
-            );
-        }
-
         $this->authorize('viewSelf', PrintJob::class);
 
         PrinterHelper::updateCompletedPrintJobs();
+        PrinterHelper::updateCompletedPrintJobs();
+
+        PrinterHelper::updateCompletedPrintJobs();
+
         return $this->paginatorFrom(
             printJobs: user()
                 ->printJobs()
@@ -61,6 +47,29 @@ class PrintJobController extends Controller
                 'filename',
                 'cost',
                 'state',
+            ]
+        );
+    }
+
+    /**
+     * Returns a paginated list of all `PrintJob`s.
+     * @return LengthAwarePaginator
+     */
+    public function adminIndex()
+    {
+        $this->authorize('viewAny', PrintJob::class);
+
+        PrinterHelper::updateCompletedPrintJobs();
+
+        return $this->paginatorFrom(
+            printJobs: PrintJob::with('user')
+                ->orderBy('print_jobs.created_at', 'desc'),
+            columns: [
+                'created_at',
+                'filename',
+                'cost',
+                'state',
+                'user.name',
             ]
         );
     }
@@ -78,7 +87,6 @@ class PrintJobController extends Controller
             'file' => 'required|file',
             'copies' => 'required|integer|min:1',
             'two_sided' => 'in:on,off',
-            'printer_id' => 'exists:printers,id',
             'use_free_pages' => 'in:on,off',
         ]);
 
@@ -88,74 +96,36 @@ class PrintJobController extends Controller
         $file = $request->file('file');
 
         /** @var Printer */
-        $printer = $request->has('printer_id') ? Printer::find($request->input("printer_id")) : Printer::firstWhere('name', config('print.printer_name'));
+        $printer = Printer::firstWhere('name', config('print.printer_name'));
 
         $path = $file->store('print-documents');
+        $originalName = $file->getClientOriginalName();
         $pageNumber = PrinterHelper::getDocumentPageNumber($path);
 
         /** @var PrintAccount */
         $printAccount = user()->printAccount;
 
-        if (!(($useFreePages && $printAccount->hasEnoughFreePages($pageNumber, $copyNumber, $twoSided)) ||
-            (!$useFreePages && $printAccount->hasEnoughBalance($pageNumber, $copyNumber, $twoSided)))
-        ) {
+        if (!$printAccount->hasEnoughBalanceOrFreePages($useFreePages, $pageNumber, $copyNumber, $twoSided)) {
+            DB::rollBack();
             return back()->with('error', __('print.no_balance'));
         }
 
-        $jobId = null;
+        $cost = $useFreePages ?
+            PrinterHelper::getFreePagesNeeded($pageNumber, $copyNumber, $twoSided) :
+            PrinterHelper::getBalanceNeeded($pageNumber, $copyNumber, $twoSided);
+
+        $printAccount->updateHistory($useFreePages, $cost);
+
         try {
-            $jobId = $printer->print($twoSided, $copyNumber, $path, user());
+            $printJob = $printer->createPrintJob($useFreePages, $cost, $path, $originalName, $twoSided, $copyNumber);
+            Log::info("User $printAccount->user_id started print job a document for $cost. Job ID: $printJob->job_id. Used free pages: $useFreePages. File: $originalName");
         } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error while creating print job: " . $e->getMessage());
             return back()->with('error', __('print.error_printing'));
         } finally {
             Storage::delete($path);
         }
-
-        $cost = $useFreePages ?
-            PrinterHelper::getFreePagesNeeeded($pageNumber, $copyNumber, $twoSided) :
-            PrinterHelper::getBalanceNeeded($pageNumber, $copyNumber, $twoSided);
-
-        Log::info("Printjob cost: $cost");
-
-        user()->printJobs()->create([
-            'state' => PrintJobStatus::QUEUED,
-            'job_id' => $jobId,
-            'cost' => $cost,
-            'used_free_pages' => $useFreePages,
-            'filename' => $file->getClientOriginalName(),
-        ]);
-
-        // Update the print account history
-        $printAccount->last_modified_by = user()->id;
-
-        if ($useFreePages) {
-            $freePagesToSubtract = $cost;
-            $freePages = $printAccount->available_free_pages->where('amount', '>', 0);
-
-            /** @var FreePages */
-            foreach ($freePages as $pages) {
-                $subtractablePages = min($freePagesToSubtract, $pages->amount);
-                $pages->update([
-                    'last_modified_by' => user()->id,
-                    'amount' => $pages->amount - $subtractablePages,
-                ]);
-
-                $freePagesToSubtract -= $subtractablePages;
-
-                if ($freePagesToSubtract <= 0) { // < should not be necessary, but better safe than sorry
-                    break;
-                }
-            }
-            // Set value in the session so that free page checkbox stays checked
-            session()->put('use_free_pages', true);
-        } else {
-            $printAccount->balance -= $cost;
-
-            // Remove value regarding the free page checkbox from the session
-            session()->remove('use_free_pages');
-        }
-
-        $printAccount->save();
 
         DB::commit();
 
@@ -167,48 +137,32 @@ class PrintJobController extends Controller
      * @param PrintJob $job
      * @return RedirectResponse
      */
-    public function update(PrintJob $job)
+    public function update(PrintJob $job, Request $request)
     {
         $this->authorize('update', $job);
 
-        if ($job->state === PrintJobStatus::QUEUED) {
-            $result = $job->cancel();
-            switch ($result) {
-                case PrinterCancelResult::Success:
-                    $job->update([
-                        'state' => PrintJobStatus::CANCELLED,
-                    ]);
-                    $printAccount = $job->printAccount;
-                    $printAccount->last_modified_by = user()->id;
+        $data = $request->validate([
+            'state' => ['required', Rule::enum(PrintJobStatus::class)->only(PrintJobStatus::CANCELLED)],
+        ]);
 
-                    if ($job->used_free_pages) {
-                        $pages = $printAccount->available_free_pages->first();
-                        $pages->update([
-                            'last_modified_by' => user()->id,
-                            'amount' => $pages->amount + $job->cost,
-                        ]);
-                    } else {
-                        $printAccount->balance += $job->cost;
+        /** @var PrintJobStatus */
+        $newState = $data['state'];
+
+        switch ($newState->value) {
+            case PrintJobStatus::CANCELLED:
+                if ($job->state === PrintJobStatus::QUEUED) {
+                    /** @var PrinterCancelResult */
+                    $result = $job->cancel();
+        
+                    if ($result === PrinterCancelResult::Success) {
+                        return back()->with('message', __('general.successful_modification'));
                     }
-
-                    $job->save();
-                    return back()->with('message', __('general.successful_modification'));
-                case PrinterCancelResult::AlreadyCompleted:
-                    $job->update([
-                        'state' => PrintJobStatus::SUCCESS,
-                    ]);
-                    break;
-                case PrinterCancelResult::AlreadyCancelled:
-                    $job->update([
-                        'state' => PrintJobStatus::CANCELLED,
-                    ]);
-                    break;
-            }
-
-            return back()->with('error', __("print.$result->value"));
+                    return back()->with('error', __("print.$result->value"));
+                }
+                return back()->with('error', __('print.cannot_cancel'));
+            default:
+                abort(422);
         }
-
-        return back();
     }
 
     /**
