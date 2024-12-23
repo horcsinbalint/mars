@@ -34,9 +34,6 @@ class PrintJobController extends Controller
         $this->authorize('viewSelf', PrintJob::class);
 
         PrinterHelper::updateCompletedPrintJobs();
-        PrinterHelper::updateCompletedPrintJobs();
-
-        PrinterHelper::updateCompletedPrintJobs();
 
         return $this->paginatorFrom(
             printJobs: user()

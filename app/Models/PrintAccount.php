@@ -87,7 +87,7 @@ class PrintAccount extends Model
      */
     public function hasEnoughFreePages(int $pages, int $copies, bool $twoSided)
     {
-        return $this->available_free_pages->sum('amount') >
+        return $this->available_free_pages->sum('amount') >=
             PrinterHelper::getFreePagesNeeded($pages, $copies, $twoSided);
     }
 
