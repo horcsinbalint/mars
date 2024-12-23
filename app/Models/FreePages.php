@@ -82,7 +82,7 @@ class FreePages extends Model
     protected function available()
     {
         return Attribute::make(
-            get: fn() => now()->isBefore($this->deadline)
+            get: fn () => now()->isBefore($this->deadline)
         );
     }
 
