@@ -100,7 +100,7 @@ class PrintAccount extends Model
      */
     public function hasEnoughBalance(int $pages, int $copies, bool $twoSided)
     {
-        return $this->balance >= PrinterHelper::getBalanceNeeded($pages, $twoSided, $copies);
+        return $this->balance >= PrinterHelper::getBalanceNeeded($pages, $copies, $twoSided);
     }
 
     /**
@@ -116,6 +116,11 @@ class PrintAccount extends Model
         return $useFreePages ? $this->hasEnoughFreePages($pages, $copies, $twoSided) : $this->hasEnoughBalance($pages, $copies, $twoSided);
     }
 
+    /**
+     * Updates the print account history and the print account balance.
+     * @param bool $useFreePages
+     * @param int $cost
+     */
     public function updateHistory(bool $useFreePages, int $cost)
     {
         // Update the print account history

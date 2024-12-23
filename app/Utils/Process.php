@@ -6,6 +6,13 @@ use Symfony\Component\Process\Process as SymfonyProcess;
 
 class Process extends SymfonyProcess
 {
+    /**
+     * Run the process.
+     *
+     * @param callable|null $callback
+     * @param array $env
+     * @return int
+     */
     public function run(?callable $callback = null, array $env = []): int
     {
         if (config('app.debug') === false) {
@@ -14,6 +21,12 @@ class Process extends SymfonyProcess
         return 0;
     }
 
+    /**
+     * Get the output of the process.
+     *
+     * @param string $debugOutput
+     * @return string
+     */
     public function getOutput(string $debugOutput = ''): string
     {
         if (config('app.debug') === false) {
@@ -22,6 +35,12 @@ class Process extends SymfonyProcess
         return $debugOutput;
     }
 
+    /**
+     * Get the exit code of the process.
+     *
+     * @param string $debugOutput
+     * @return string
+     */
     public function getExitCode(): ?int
     {
         if (config('app.debug') === false) {
