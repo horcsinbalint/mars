@@ -7,7 +7,7 @@ use Symfony\Component\Process\Process as SymfonyProcess;
 class Process extends SymfonyProcess
 {
     /**
-     * Run the process.
+     * Run the process. If the app is in debug mode, the process will not be executed.
      *
      * @param callable|null $callback
      * @param array $env

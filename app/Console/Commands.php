@@ -2,8 +2,8 @@
 
 namespace App\Console;
 
+use App\Utils\Process;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Process;
 
 /**
  * Collection of exec commands.
@@ -11,33 +11,20 @@ use Symfony\Component\Process\Process;
  */
 class Commands
 {
-    private static function isDebugMode()
-    {
-        return config('app.debug');
-    }
-
     public static function pingRouter($router)
     {
-        if (self::isDebugMode()) {
-            $result = rand(1, 10) > 9 ? "error" : '';
-        } else {
-            // This happens too often to log.
-            $process = new Process(['ping', $router->ip, '-c', '1', '|', 'grep', "'error\|unreachable'"]);
-            $process->run();
-            $result = $process->getOutput();
-        }
+        // This happens too often to log.
+        $process = Process::fromShellCommandline("ping $router->ip -c 1 | grep 'error\|unreachable'");
+        $process->run();
+        $result = $process->getOutput(debugOutput: rand(1, 10) > 9 ? "error" : '');
         return $result;
     }
 
     public static function latexToPdf($path, $outputDir)
     {
-        if (self::isDebugMode()) {
-            $result = "ok";
-        } else {
-            $process = new Process(['pdflatex', '-interaction=nonstopmode', '-output-dir', $outputDir, $path]);
-            $process->run();
-            $result = $process->getOutput();
-        }
+        $process = new Process(['pdflatex', '-interaction=nonstopmode', '-output-dir', $outputDir, $path]);
+        $process->run();
+        $result = $process->getOutput(debugOutput: 'ok');
         return $result;
     }
 }

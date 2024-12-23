@@ -114,7 +114,7 @@ class Printer extends Model {
      */
     public function getCompletedPrintJobs() {
         try {
-            $process = new Process(['lpstat', '-W', 'completed', '-o', $this->name, '-h', "$this->ip:$this->port", '|', 'awk', "'{print $1}'"]);
+            $process = Process::fromShellCommandline("lpstat -W completed -o $this->name -h $this->ip:$this->port | awk '{print $1}'");
             $process->run();
             $result = explode("\n", $process->getOutput());
             return $result;
