@@ -120,7 +120,7 @@ class PrintJob extends Model
     public function cancel()
     {
         $printer = $this->printer;
-        $process = new Process(['cancel', $this->job_id, '-h', "$printer->ip:$printer->port"]);
+        $process = new Process([config('commands.cancel'), $this->job_id, '-h', "$printer->ip:$printer->port"]);
         $process->run();
         $result = ['output' => $process->getOutput(), 'exit_code' => $process->getExitCode()];
 

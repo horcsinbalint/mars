@@ -14,7 +14,7 @@ class PrinterHelper
      */
     public static function getDocumentPageNumber(string $path): int
     {
-        $process = new Process(['pdfinfo', $path, '|', 'grep', "'^Pages'", '|', 'awk', "'{print $2}'"]);
+        $process = Process::fromShellCommandline(config('commands.pdfinfo') . " $path | grep '^Pages' | awk '{print $2}'");
         $process->run();
         $result = intval($process->getOutput(strval(rand(1, 10))));
         return $result;
