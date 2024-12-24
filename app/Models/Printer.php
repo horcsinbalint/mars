@@ -12,6 +12,7 @@ use Psr\Container\ContainerExceptionInterface;
 use App\Utils\Process;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Support\Facades\DB;
 
 class Printer extends Model
 {
@@ -134,10 +135,12 @@ class Printer extends Model
      */
     public function updateCompletedPrintJobs()
     {
-        PrintJob::whereIn(
-            'job_id',
-            $this->getCompletedPrintJobs()
-        )->update(['state' => PrintJobStatus::SUCCESS]);
+        return DB::transaction(function () {
+            PrintJob::whereIn(
+                'job_id',
+                $this->getCompletedPrintJobs()
+            )->update(['state' => PrintJobStatus::SUCCESS]);
+        });
     }
 }
 

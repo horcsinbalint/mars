@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOneThrough;
+use Illuminate\Support\Facades\DB;
 use Log;
 
 /**
@@ -99,7 +100,7 @@ class PrintJob extends Model
     public function translatedCost()
     {
         return Attribute::make(
-            get: fn () => $this->used_free_pages ? "$this->cost ingyenes oldal" : "$this->cost HUF"
+            get: fn() => $this->used_free_pages ? "$this->cost ingyenes oldal" : "$this->cost HUF"
         );
     }
 
@@ -109,7 +110,7 @@ class PrintJob extends Model
     public function translatedState()
     {
         return Attribute::make(
-            get: fn () => __("print." . strtoupper($this->state->value))
+            get: fn() => __("print." . strtoupper($this->state->value))
         );
     }
 
@@ -120,43 +121,45 @@ class PrintJob extends Model
      */
     public function cancel()
     {
-        $printer = $this->printer;
-        $process = new Process([config('commands.cancel'), $this->job_id, '-h', "$printer->ip:$printer->port"]);
-        $process->run();
-        $result = ['output' => $process->getOutput(), 'exit_code' => $process->getExitCode()];
+        return DB::transaction(function () {
+            $printer = $this->printer;
+            $process = new Process([config('commands.cancel'), $this->job_id, '-h', "$printer->ip:$printer->port"]);
+            $process->run();
+            $result = ['output' => $process->getOutput(), 'exit_code' => $process->getExitCode()];
 
-        if ($result['exit_code'] == 0) {
-            $this->update([
-                'state' => PrintJobStatus::CANCELLED,
-            ]);
-            $printAccount = $this->printAccount;
-            $printAccount->last_modified_by = user()->id;
-
-            if ($this->used_free_pages) {
-                $pages = $printAccount->available_free_pages->first();
-                $pages->update([
-                    'last_modified_by' => user()->id,
-                    'amount' => $pages->amount + $this->cost,
+            if ($result['exit_code'] == 0) {
+                $this->update([
+                    'state' => PrintJobStatus::CANCELLED,
                 ]);
-            } else {
-                $printAccount->balance += $this->cost;
-            }
+                $printAccount = $this->printAccount;
+                $printAccount->last_modified_by = user()->id;
 
-            $this->save();
-            return PrinterCancelResult::Success;
-        }
-        if (strpos($result['output'], "already canceled") !== false) {
-            $this->update([
-                'state' => PrintJobStatus::CANCELLED,
-            ]);
-            return PrinterCancelResult::AlreadyCancelled;
-        }
-        if (strpos($result['output'], "already completed") !== false) {
-            $this->update([
-                'state' => PrintJobStatus::SUCCESS,
-            ]);
-            return PrinterCancelResult::AlreadyCompleted;
-        }
-        return PrinterCancelResult::CannotCancel;
+                if ($this->used_free_pages) {
+                    $pages = $printAccount->availableFreePages()->first();
+                    $pages->update([
+                        'last_modified_by' => user()->id,
+                        'amount' => $pages->amount + $this->cost,
+                    ]);
+                } else {
+                    $printAccount->balance += $this->cost;
+                }
+
+                $this->save();
+                return PrinterCancelResult::Success;
+            }
+            if (strpos($result['output'], "already canceled") !== false) {
+                $this->update([
+                    'state' => PrintJobStatus::CANCELLED,
+                ]);
+                return PrinterCancelResult::AlreadyCancelled;
+            }
+            if (strpos($result['output'], "already completed") !== false) {
+                $this->update([
+                    'state' => PrintJobStatus::SUCCESS,
+                ]);
+                return PrinterCancelResult::AlreadyCompleted;
+            }
+            return PrinterCancelResult::CannotCancel;
+        });
     }
 }

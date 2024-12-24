@@ -2,6 +2,7 @@
 
 namespace App\Utils;
 
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\Process as SymfonyProcess;
 
 class Process extends SymfonyProcess
@@ -18,6 +19,7 @@ class Process extends SymfonyProcess
         if (config('app.debug') === false || config('commands.run_in_debug') === true) {
             return parent::run($callback, $env);
         }
+        Log::info("Process not executed in debug mode.");
         return 0;
     }
 
@@ -32,6 +34,7 @@ class Process extends SymfonyProcess
         if (config('app.debug') === false || config('commands.run_in_debug') === true) {
             return parent::getOutput();
         }
+        Log::info("Process output not available in debug mode.");
         return $debugOutput;
     }
 
@@ -46,6 +49,7 @@ class Process extends SymfonyProcess
         if (config('app.debug') === false || config('commands.run_in_debug') === true) {
             return parent::getExitCode();
         }
+        Log::info("Process exit code not available in debug mode.");
         return 0;
     }
 }
