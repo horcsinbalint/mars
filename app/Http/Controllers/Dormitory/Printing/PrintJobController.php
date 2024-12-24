@@ -8,7 +8,7 @@ use App\Models\FreePages;
 use App\Models\PrintAccount;
 use App\Models\Printer;
 use App\Enums\PrinterCancelResult;
-use App\Models\PrinterHelper;
+use App\Utils\PrinterHelper;
 use App\Models\PrintJob;
 use App\Utils\TabulatorPaginator;
 use Illuminate\Contracts\Container\BindingResolutionException;

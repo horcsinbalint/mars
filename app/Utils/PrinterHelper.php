@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace App\Utils;
 
 use App\Enums\PrintJobStatus;
+use App\Models\Printer;
+use App\Models\PrintJob;
 use App\Utils\Process;
 
 class PrinterHelper
