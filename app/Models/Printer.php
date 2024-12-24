@@ -13,7 +13,8 @@ use App\Utils\Process;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\MassAssignmentException;
 
-class Printer extends Model {
+class Printer extends Model
+{
     use HasFactory;
 
     public $timestamps = false;
@@ -31,27 +32,29 @@ class Printer extends Model {
 
     /**
      * Returns the `PrintJob`s that were executed by this printer.
-     * @return HasMany 
+     * @return HasMany
      */
-    public function printJobs() {
+    public function printJobs()
+    {
         return $this->hasMany(PrintJob::class);
     }
 
 
     /**
      * Starts a new print job for the current user and saves it.
-     * @param bool $useFreePages 
-     * @param int $cost 
-     * @param string $filePath 
-     * @param string $originalName 
-     * @param bool $twoSided 
-     * @param int $copyNumber 
-     * @return Model 
-     * @throws AuthenticationException 
-     * @throws PrinterException 
-     * @throws MassAssignmentException 
+     * @param bool $useFreePages
+     * @param int $cost
+     * @param string $filePath
+     * @param string $originalName
+     * @param bool $twoSided
+     * @param int $copyNumber
+     * @return Model
+     * @throws AuthenticationException
+     * @throws PrinterException
+     * @throws MassAssignmentException
      */
-    public function createPrintJob(bool $useFreePages, int $cost, string $filePath, string $originalName, bool $twoSided, int $copyNumber) {
+    public function createPrintJob(bool $useFreePages, int $cost, string $filePath, string $originalName, bool $twoSided, int $copyNumber)
+    {
         $jobId = $this->print($twoSided, $copyNumber, $filePath);
 
         return user()->printJobs()->create([
@@ -66,24 +69,25 @@ class Printer extends Model {
 
     /**
      * Asks the printer to print a document with the given configuration.
-     * @param bool $twoSided 
-     * @param int $copies 
-     * @param string $path 
+     * @param bool $twoSided
+     * @param int $copies
+     * @param string $path
      * @return int The `jobId` belonging to the printjob
      * @throws PrinterException If the printing fails
      */
-    public function print(bool $twoSided, int $copies, string $path) {
+    public function print(bool $twoSided, int $copies, string $path)
+    {
         if (config('app.debug')) {
             return -1;
         }
         $jobId = null;
         try {
             $process = new Process([
-                'lp', 
-                '-d', $this->name, 
-                '-h', "$this->ip:$this->port", 
+                'lp',
+                '-d', $this->name,
+                '-h', "$this->ip:$this->port",
                 ($twoSided ? '-o sides=two-sided-long-edge' : ''),
-                 '-n', $copies, 
+                 '-n', $copies,
                  $path
             ]);
             $process->run();
@@ -108,11 +112,12 @@ class Printer extends Model {
 
     /**
      * Returns the completed printjobs for this printer.
-     * @return array 
-     * @throws NotFoundExceptionInterface 
-     * @throws ContainerExceptionInterface 
+     * @return array
+     * @throws NotFoundExceptionInterface
+     * @throws ContainerExceptionInterface
      */
-    public function getCompletedPrintJobs() {
+    public function getCompletedPrintJobs()
+    {
         try {
             $process = Process::fromShellCommandline(config('commands.lpstat') . " -W completed -o $this->name -h $this->ip:$this->port | awk '{print $1}'");
             $process->run();
@@ -127,14 +132,16 @@ class Printer extends Model {
     /**
      * Updates the state of the completed printjobs to `PrintJobStatus::SUCCESS`.
      */
-    public function updateCompletedPrintJobs() {
+    public function updateCompletedPrintJobs()
+    {
         PrintJob::whereIn(
-            'job_id', 
+            'job_id',
             $this->getCompletedPrintJobs()
         )->update(['state' => PrintJobStatus::SUCCESS]);
     }
 }
 
-class PrinterException extends \Exception {
+class PrinterException extends \Exception
+{
     //
 }
