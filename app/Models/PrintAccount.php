@@ -72,9 +72,7 @@ class PrintAccount extends Model
      */
     public function availableFreePages()
     {
-        return Attribute::make(
-            get: fn () => $this->freePages()->where('deadline', '>', now())->orderBy('deadline')->get()
-        );
+        return $this->freePages()->where('deadline', '>', now())->orderBy('deadline')->get();
     }
 
     /**
@@ -87,7 +85,7 @@ class PrintAccount extends Model
      */
     public function hasEnoughFreePages(int $pages, int $copies, bool $twoSided)
     {
-        return $this->available_free_pages->sum('amount') >=
+        return $this->availableFreePages()->sum('amount') >=
             PrinterHelper::getFreePagesNeeded($pages, $copies, $twoSided);
     }
 
@@ -118,6 +116,7 @@ class PrintAccount extends Model
 
     /**
      * Updates the print account history and the print account balance.
+     * Important note: This function should only be called within a transaction. Otherwise, the history may not be consistent.
      * @param bool $useFreePages
      * @param int $cost
      */
@@ -128,7 +127,7 @@ class PrintAccount extends Model
 
         if ($useFreePages) {
             $freePagesToSubtract = $cost;
-            $availableFreePages = $this->available_free_pages->where('amount', '>', 0);
+            $availableFreePages = $this->availableFreePages()->where('amount', '>', 0);
 
             // Subtract the pages from the free pages pool, as many free pages as necessary
             /** @var FreePages */

@@ -15,7 +15,7 @@ class Process extends SymfonyProcess
      */
     public function run(?callable $callback = null, array $env = []): int
     {
-        if (config('app.debug') === false) {
+        if (config('app.debug') === false || config('commands.run_in_debug') === true) {
             return parent::run($callback, $env);
         }
         return 0;
@@ -29,7 +29,7 @@ class Process extends SymfonyProcess
      */
     public function getOutput(string $debugOutput = ''): string
     {
-        if (config('app.debug') === false) {
+        if (config('app.debug') === false || config('commands.run_in_debug') === true) {
             return parent::getOutput();
         }
         return $debugOutput;
@@ -39,11 +39,11 @@ class Process extends SymfonyProcess
      * Get the exit code of the process.
      *
      * @param string $debugOutput
-     * @return string
+     * @return int|null
      */
     public function getExitCode(): ?int
     {
-        if (config('app.debug') === false) {
+        if (config('app.debug') === false || config('commands.run_in_debug') === true) {
             return parent::getExitCode();
         }
         return 0;

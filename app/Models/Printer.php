@@ -52,7 +52,7 @@ class Printer extends Model {
      * @throws MassAssignmentException 
      */
     public function createPrintJob(bool $useFreePages, int $cost, string $filePath, string $originalName, bool $twoSided, int $copyNumber) {
-        $jobId = $this->print($twoSided, $copyNumber, $filePath, user());
+        $jobId = $this->print($twoSided, $copyNumber, $filePath);
 
         return user()->printJobs()->create([
             'printer_id' => $this->id,
@@ -120,6 +120,7 @@ class Printer extends Model {
             return $result;
         } catch (\Exception $e) {
             Log::error("Printing error at line: " . __FILE__ . ":" . __LINE__ . " (in function " . __FUNCTION__ . "). " . $e->getMessage());
+            throw new PrinterException($e->getMessage(), $e->getCode(), $e->getPrevious());
         }
     }
 
@@ -132,13 +133,6 @@ class Printer extends Model {
             $this->getCompletedPrintJobs()
         )->update(['state' => PrintJobStatus::SUCCESS]);
     }
-}
-
-enum PrinterCancelResult: string {
-    case AlreadyCancelled = "already-cancelled";
-    case AlreadyCompleted = "already-completed";
-    case CannotCancel = "cannot-cancel";
-    case Success = "successfully-cancelled";
 }
 
 class PrinterException extends \Exception {

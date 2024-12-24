@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PrinterCancelResult;
 use App\Enums\PrintJobStatus;
 use App\Utils\Process;
 use Illuminate\Database\Eloquent\Casts\Attribute;

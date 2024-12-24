@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FreePages;
 use App\Models\PrintAccount;
 use App\Models\Printer;
-use App\Models\PrinterCancelResult;
+use App\Enums\PrinterCancelResult;
 use App\Models\PrinterHelper;
 use App\Models\PrintJob;
 use App\Utils\TabulatorPaginator;
