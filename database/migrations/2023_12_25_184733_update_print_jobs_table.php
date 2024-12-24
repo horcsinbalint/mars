@@ -15,7 +15,7 @@ return new class () extends Migration {
     public function up()
     {
         Schema::table('print_jobs', function (Blueprint $table) {
-            $table->foreignIdFor(Printer::class)->nullable()->after('user_id')->constrained()->nullOnDelete();
+            $table->foreignIdFor(Printer::class)->nullable()->after('user_id')->constrained();
             $table->boolean('used_free_pages')->default(false)->after('cost');
             $table->dropColumn('filepath');
         });
