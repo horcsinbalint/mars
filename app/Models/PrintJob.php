@@ -100,7 +100,7 @@ class PrintJob extends Model
     public function translatedCost()
     {
         return Attribute::make(
-            get: fn() => $this->used_free_pages ? "$this->cost ingyenes oldal" : "$this->cost HUF"
+            get: fn () => $this->used_free_pages ? "$this->cost ingyenes oldal" : "$this->cost HUF"
         );
     }
 
@@ -110,7 +110,7 @@ class PrintJob extends Model
     public function translatedState()
     {
         return Attribute::make(
-            get: fn() => __("print." . strtoupper($this->state->value))
+            get: fn () => __("print." . strtoupper($this->state->value))
         );
     }
 
