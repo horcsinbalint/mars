@@ -48,7 +48,7 @@ class PrinterController extends Controller
         ]);
 
         if ($request->boolean("no_paper")) {
-            if ($printer->paper_out_at === null || now()->diffInMinutes($printer->paper_out_at) > 5) {
+            if ($printer->paper_out_at === null || now()->diffInMinutes($printer->paper_out_at) > 30) {
                 Mail::to(User::withRole(Role::SYS_ADMIN)->get())->queue(new NoPaper(user()->name));
             }
             $printer->update(['paper_out_at' => now()]);
