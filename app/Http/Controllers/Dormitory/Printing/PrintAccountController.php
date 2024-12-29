@@ -92,7 +92,8 @@ class PrintAccountController extends Controller
 
         DB::commit();
 
-        Mail::to($printAccount->user)->queue(new ChangedPrintBalance($printAccount->user, $amount, user()->name));
+        Mail::to($printAccount->user)->queue(new ChangedPrintBalance($printAccount->user, -$amount, user()->name));
+        Mail::to($otherAccount->user)->queue(new ChangedPrintBalance($otherAccount->user, $amount, user()->name));
 
         return redirect()->back()->with('message', __('general.successful_transaction'));
     }

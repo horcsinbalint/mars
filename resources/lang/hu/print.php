@@ -17,7 +17,7 @@ return [
     'cancel_job' => 'Megszakítás',
     'cannot_cancel' => 'Nem lehetett megszakítani a nyomtatást',
     'changed_balance' => 'Megváltozott nyomtatási egyenleg',
-    'changed_balance_descr' => ':modifier módosította a nyomtatási egyenleged ennyivel: :amount. Az új egyenleged :balance Ft.',
+    'changed_balance_descr' => ':modifier módosította a nyomtatási egyenleged ennyivel: :amount Ft. Az új egyenleged :balance Ft.',
     'confirm_cancel' => 'Biztos, hogy meg szeretnéd szakítani a dokumentum nyomtatását?',
     'cost' => 'Költség',
     'costs' => 'Az egyoldalas nyomtatás díja :one_sided, a kétoldalasé :two_sided Ft.',
