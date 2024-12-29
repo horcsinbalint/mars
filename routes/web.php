@@ -141,10 +141,11 @@ Route::middleware([Authenticate::class, LogRequests::class, EnsureVerified::clas
         Route::post('/free-pages', [FreePagesController::class, 'store'])->name('free-pages.store');
         Route::get('/free-pages/admin', [FreePagesController::class, 'adminIndex'])->name('free-pages.index.admin');
 
-        Route::put('/print-account', [PrintAccountController::class, 'update'])->name('print-account.update');
 
         Route::get('/print-account-history', [PrintAccountHistoryController::class, 'index'])->name('print-account-history.index');
     });
+
+    Route::put('/print-account-update', [PrintAccountController::class, 'update'])->name('print-account.update');
 
     Route::prefix('internet')->name('internet.')->group(function () {
         Route::get('/', [InternetController::class, 'index'])->name('index');
