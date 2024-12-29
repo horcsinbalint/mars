@@ -79,7 +79,7 @@ class FreePages extends Model
      * Wether the free pages are still available.
      * @return bool
      */
-    protected function available() : Attribute
+    protected function available(): Attribute
     {
         return Attribute::make(
             get: fn () => now()->isBefore($this->deadline)

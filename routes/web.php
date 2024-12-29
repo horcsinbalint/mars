@@ -127,7 +127,7 @@ Route::middleware([Authenticate::class, LogRequests::class, EnsureVerified::clas
     });
 
     /** Printing */
-    Route::prefix('print')->name('print.')->group(function(){
+    Route::prefix('print')->name('print.')->group(function () {
         Route::get('/', [PrinterController::class, 'index'])->name('index');
         Route::get('/admin', [PrinterController::class, 'adminIndex'])->name('index.admin');
         Route::put('/{printer}', [PrinterController::class, 'update'])->name('update');
@@ -144,7 +144,7 @@ Route::middleware([Authenticate::class, LogRequests::class, EnsureVerified::clas
         Route::put('/print-account', [PrintAccountController::class, 'update'])->name('print-account.update');
 
         Route::get('/print-account-history', [PrintAccountHistoryController::class, 'index'])->name('print-account-history.index');
-    });    
+    });
 
     Route::prefix('internet')->name('internet.')->group(function () {
         Route::get('/', [InternetController::class, 'index'])->name('index');
