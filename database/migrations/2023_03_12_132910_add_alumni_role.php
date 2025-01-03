@@ -28,7 +28,7 @@ return new class () extends Migration {
             DB::table('role_users')->where('user_id', $semesterStatus->user_id)->where('role_id', $collegist_role_id)->delete();
             DB::table('role_users')->insert([
                 'user_id' => $semesterStatus->user_id,
-                'role_id' => $semesterStatus->user_id
+                'role_id' => $alumni_role_id
             ]);
         }
         
