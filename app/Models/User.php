@@ -768,7 +768,6 @@ class User extends Authenticatable implements HasLocalePreference
         $this->addRole($role, $object);
 
         Cache::forget('collegists');
-        WorkshopBalance::generateBalances(Semester::current());
     }
 
     /**
