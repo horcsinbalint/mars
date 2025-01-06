@@ -15,7 +15,7 @@ return new class () extends Migration {
         Schema::create('semester_evaluations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id');
-            $table->unsignedSmallInteger('semester_id');
+            $table->unsignedBigInteger('semester_id');
             $table->text('alfonso_note')->nullable();
             $table->json('courses')->nullable();
             $table->text('courses_note')->nullable();

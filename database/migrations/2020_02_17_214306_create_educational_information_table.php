@@ -16,10 +16,10 @@ class CreateEducationalInformationTable extends Migration
         Schema::create('educational_information', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('user_id');
-            $table->unsignedInteger('year_of_graduation');
-            $table->text('high_school');
+            $table->unsignedInteger('year_of_graduation')->nullable();
+            $table->text('high_school')->nullable();
             $table->char('neptun', 6);
-            $table->unsignedInteger('year_of_acceptance');
+            $table->unsignedInteger('year_of_acceptance')->nullable();
             $table->timestamps();
         });
 

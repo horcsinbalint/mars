@@ -18,8 +18,8 @@ return new class () extends Migration {
             $table->foreignId('educational_information_id');
             $table->string('name');
             $table->enum('type', ['bachelor', 'master', 'phd', 'ot', 'other'])->nullable();
-            $table->unsignedSmallInteger('start')->nullable();
-            $table->unsignedSmallInteger('end')->nullable();
+            $table->unsignedBigInteger('start')->nullable();
+            $table->unsignedBigInteger('end')->nullable();
             $table->timestamps();
         });
 
