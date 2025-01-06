@@ -15,7 +15,8 @@
                     xl=2 s=6
                     text="user.study_line_training_code"
                     :value="$value?->training_code"
-                    required />
+                    required
+                    helper="Pl. TTK-FIZIKA-NBHU"/>
         <x-input.text id="study_lines[{{ $index }}][minor]"
                     xl=3 s=6
                     text="user.study_line_minor"
