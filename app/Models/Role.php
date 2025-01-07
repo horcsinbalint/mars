@@ -51,6 +51,7 @@ class Role extends Model
     public const ETHICS_COMMISSIONER = 'ethics-commissioner';
     public const ALUMNI = 'alumni';
     public const RECEPTIONIST = 'receptionist';
+    public const SENIOR = 'senior';
 
     //Students' Committe role's objects
     public const PRESIDENT = 'president';
@@ -125,7 +126,8 @@ class Role extends Model
         self::BOARD_OF_TRUSTEES_MEMBER,
         self::ETHICS_COMMISSIONER,
         self::ALUMNI,
-        self::RECEPTIONIST
+        self::RECEPTIONIST,
+        self::SENIOR
     ];
 
     protected $fillable = [

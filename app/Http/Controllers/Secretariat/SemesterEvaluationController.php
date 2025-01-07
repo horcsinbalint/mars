@@ -245,9 +245,15 @@ class SemesterEvaluationController extends Controller
      */
     public function usersHaventFilledOutTheForm()
     {
-        return User::withRole(Role::COLLEGIST)->verified()->whereDoesntHave('semesterStatuses', function ($query) {
-            $query->where('semester_id', $this->semester()?->succ()?->id);
-        })->get();
+        return User::withRole(Role::COLLEGIST)
+            ->whereDoesntHave('roles', function ($query) {
+                $query->where('name', Role::SENIOR);
+            })
+            ->verified()
+            ->whereDoesntHave('semesterStatuses', function ($query) {
+                $query->where('semester_id', $this->semester()?->succ()?->id);
+            })
+            ->get();
     }
 
     /**
