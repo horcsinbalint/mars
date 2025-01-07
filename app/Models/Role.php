@@ -112,6 +112,7 @@ class Role extends Model
     public const ALL = [
         self::SYS_ADMIN,
         self::COLLEGIST,
+        self::SENIOR,
         self::TENANT,
         self::WORKSHOP_ADMINISTRATOR,
         self::WORKSHOP_LEADER,
@@ -126,8 +127,7 @@ class Role extends Model
         self::BOARD_OF_TRUSTEES_MEMBER,
         self::ETHICS_COMMISSIONER,
         self::ALUMNI,
-        self::RECEPTIONIST,
-        self::SENIOR
+        self::RECEPTIONIST
     ];
 
     protected $fillable = [
@@ -313,6 +313,7 @@ class Role extends Model
             self::ETHICS_COMMISSIONER => 'green lighten-2',
             self::ALUMNI => 'grey darken-1',
             self::RECEPTIONIST => 'brown',
+            self::SENIOR => 'teal', 
             default => 'grey',
         };
     }
