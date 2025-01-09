@@ -137,7 +137,6 @@ class SemesterEvaluationController extends Controller
         $this->authorize('fillOrManage', SemesterEvaluation::class);
 
         return view('secretariat.evaluation-form.app', [
-            'phd' => user()->educationalInformation->isSenior(),
             'user' => user(),
             'faculties' => Faculty::all(),
             'workshops' => Workshop::all(),
@@ -245,9 +244,15 @@ class SemesterEvaluationController extends Controller
      */
     public function usersHaventFilledOutTheForm()
     {
-        return User::withRole(Role::COLLEGIST)->verified()->whereDoesntHave('semesterStatuses', function ($query) {
-            $query->where('semester_id', $this->semester()?->succ()?->id);
-        })->get();
+        return User::withRole(Role::COLLEGIST)
+            ->whereDoesntHave('roles', function ($query) {
+                $query->where('name', Role::SENIOR);
+            })
+            ->verified()
+            ->whereDoesntHave('semesterStatuses', function ($query) {
+                $query->where('semester_id', $this->semester()?->succ()?->id);
+            })
+            ->get();
     }
 
     /**
